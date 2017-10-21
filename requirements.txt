@@ -1,0 +1,2 @@
+fdfgen==0.16.0
+npyscreen==4.10.5
