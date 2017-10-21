@@ -44,8 +44,6 @@ def form(*args):
             fieldnames.append(f['FieldName'])
 
     for n in fieldnames:
-        with open("log", "a") as f:
-            f.write(n + '\n')
         title = ""
         if 'FieldNameAlt' in fields[n]:
             title = fields[n]['FieldNameAlt']
@@ -74,10 +72,6 @@ def form(*args):
                              when_pressed_function=functools.partial(stop_form, F))
     F.switch_page(0)
     F.edit()
-
-    for n, x in field_fields:
-        with open("l", "a") as f:
-            f.write("{}, {}, {}".format(n, fields[n], x.value))
 
     fields = [(n, get_value(x)) for n, x in field_fields]
 
