@@ -1,48 +1,57 @@
+import argparse
 import functools
 import html
 import json
 import os
+import random
 import shlex
 import subprocess
 import sys
 import time
+import xml.etree.ElementTree as ET
+from datetime import datetime
 
 import npyscreen
+import requests
+from bs4 import BeautifulSoup
 from fdfgen import forge_fdf
 
 
-def stop_form(F):
-    F.editing = False
+def main(*args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--exclude', action='append', default=[])
+    parser.add_argument('--input-pdf', action='store',
+                        default='fahrgastrechte.pdf')
+    parser.add_argument('--pdftk', action='store',
+                        default='pdftk')
+    parser.add_argument('--output-fdf', action='store',
+                        default='data.fdf')
+    parser.add_argument('--output-pdf', action='store', default=None)
+    parser.add_argument('--output-json', action='store', default='field.json')
+    parser.add_argument('--field-defaults', action='store',
+                        default='defaults.json')
+    parser.add_argument('--auftragsnummer', action='store',
+                        default=None)
+    parser.add_argument('--nachname', action='store',
+                        default=None)
 
+    args = parser.parse_args()
 
-def form(*args):
-    F = npyscreen.FormMultiPage()
-    if os.path.isfile("defaults.json"):
-        with open("defaults.json", "r") as f:
+    if os.path.isfile(args.field_defaults):
+        with open(args.field_defaults, "r") as f:
             defaults = json.load(f)
     else:
         defaults = {}
 
-    fields = {}
-    fieldnames = []
-    field_fields = []
-    fields_ = subprocess.check_output(shlex.split(
-        "pdftk fahrgastrechte.pdf dump_data_fields"), stderr=open("/dev/null", "w")).decode().split("---\n")
-    for raw_field in fields_:
-        f = {}
-        for line in raw_field.splitlines():
-            r = line.split(": ")
-            r[1] = html.unescape(r[1])
-            if r[0] in f:
-                if not isinstance(f[r[0]], list):
-                    f[r[0]] = [f[r[0]]]
-                f[r[0]].append(r[1])
-            else:
-                f[r[0]] = r[1]
-        if 'FieldName' in f:
-            fields[f['FieldName']] = f
-            fieldnames.append(f['FieldName'])
 
+
+    if args.auftragsnummer and args.nachname:
+        defaults.update(download_buchung(**vars(args)))
+
+    field_fields = []
+    fields, fieldnames = get_form_fields(**vars(args))
+
+    F = npyscreen.FormMultiPage()
     for n in fieldnames:
         title = ""
         if 'FieldNameAlt' in fields[n]:
@@ -69,23 +78,90 @@ def form(*args):
                 npyscreen.TitleText, name=title, value=value)))
 
     F.add_widget_intelligent(npyscreen.ButtonPress, name="Generate Form",
-                             when_pressed_function=functools.partial(stop_form, F))
+                             when_pressed_function=functools.partial(setattr, F, 'editing', False))
     F.switch_page(0)
     F.edit()
 
     fields = [(n, get_value(x)) for n, x in field_fields]
 
+    return generate_form(fields, **vars(args))
+
+def get_form_fields(pdftk, input_pdf, *args, **kwrags):
+    fields = {}
+    fieldnames = []
+    fields_ = subprocess.check_output([pdftk, input_pdf, "dump_data_fields"], stderr=open("/dev/null", "w")).decode().split("---\n")
+    for raw_field in fields_:
+        f = {}
+        for line in raw_field.splitlines():
+            r = line.split(": ")
+            r[1] = html.unescape(r[1])
+            if r[0] in f:
+                if not isinstance(f[r[0]], list):
+                    f[r[0]] = [f[r[0]]]
+                f[r[0]].append(r[1])
+            else:
+                f[r[0]] = r[1]
+        if 'FieldName' in f:
+            fields[f['FieldName']] = f
+            fieldnames.append(f['FieldName'])
+
+    return fields, fieldnames
+
+
+def generate_form(fields, input_pdf, output_pdf, output_fdf, output_json, pdftk, *args, **kwargs):
+
     with open("fields.json", "w") as f:
         json.dump({x: y for x, y in fields}, f)
 
     fdf = forge_fdf("", fields, [], [], [])
-    fdf_file = open("data.fdf", "wb")
+    fdf_file = open(output_fdf, "wb")
     fdf_file.write(fdf)
     fdf_file.close()
 
-    fields_ = subprocess.check_output(shlex.split(
-        "pdftk fahrgastrechte.pdf fill_form data.fdf output fahrgastrechte_{}.pdf".format(int(time.time()))), stderr=open("/dev/null", "w")).decode().split("---\n")
+    output_file = output_pdf if output_pdf else "fahrgastrechte_{}.pdf".format(int(time.time()))
+    subprocess.run([pdftk, input_pdf, "fill_form", output_fdf, "output", output_file], stderr=open("/dev/null", "w"))
 
+    return output_file
+
+def request_xml(request_type, xml):
+    url = 'https://fahrkarten.bahn.de/mobile/dbc/xs.go'
+    tnr = random.getrandbits(64)
+    print(tnr)
+    ts = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    print(ts)
+    request_body = '<{0} version="2.0"><rqheader tnr="{1}" app="NAVIGATOR" ts="{2}" l="en" v="17080000" os="Android REL 25" d="OnePlus A0001"/>{3}</{0}>'.format(request_type, tnr, ts, xml)
+    print(request_body)
+    return requests.post(url, data=request_body)
+
+def parse_time_location(root, elem_id):
+    arrival = root.iter(elem_id).__next__()
+    bhf = arrival.find('ebhf_name').text
+    date = datetime.strptime(arrival.get('dt'), '%Y-%m-%dT%H:%M:%S').date()
+    time = datetime.strptime(arrival.get('t'), '%H:%M:%S').time()
+    return bhf, date, time
+
+def download_buchung(auftragsnummer, nachname, *args, **kwargs):
+    request_body = '<rqorder on="{}"/><authname tln="{}"/>'.format(auftragsnummer, nachname)
+    req = request_xml("rqorderdetails", request_body)
+    root = ET.fromstring(req.text)
+
+    arrival = parse_time_location(root, "arr")
+    departure = parse_time_location(root, "dep")
+
+    return {
+        "S1F1": str(departure[1].day).zfill(2),
+        "S1F2": str(departure[1].month).zfill(2),
+        "S1F3": str(departure[1].year)[2:].zfill(2),
+        "S1F4": str(departure[0]),
+        "S1F5": str(departure[2].hour).zfill(2),
+        "S1F6": str(departure[2].minute).zfill(2),
+        "S1F7": str(arrival[0]),
+        "S1F8": str(arrival[2].hour).zfill(2),
+        "S1F9": str(arrival[2].minute).zfill(2),
+        "S1F10": str(arrival[1].day).zfill(2),
+        "S1F11": str(arrival[1].month).zfill(2),
+        "S1F12": str(arrival[1].year)[2:].zfill(2),
+    }
 
 def get_value(w):
     if isinstance(w, npyscreen.MultiLine) or isinstance(w, npyscreen.TitleMultiLine):
@@ -97,4 +173,4 @@ def get_value(w):
         return w.value
 
 if __name__ == '__main__':
-    npyscreen.wrapper_basic(form)
+    print(npyscreen.wrapper_basic(main))
