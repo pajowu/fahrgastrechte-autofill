@@ -19,21 +19,22 @@ from fdfgen import forge_fdf
 
 def main(*args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--exclude', action='append', default=[])
-    parser.add_argument('--input-pdf', action='store',
-                        default='fahrgastrechte.pdf')
-    parser.add_argument('--pdftk', action='store',
-                        default='pdftk')
-    parser.add_argument('--output-fdf', action='store',
-                        default='data.fdf')
-    parser.add_argument('--output-pdf', action='store', default=None)
-    parser.add_argument('--output-json', action='store', default='field.json')
-    parser.add_argument('--field-defaults', action='store',
-                        default='defaults.json')
-    parser.add_argument('--auftragsnummer', action='store',
-                        default=None)
-    parser.add_argument('--nachname', action='store',
-                        default=None)
+    parser.add_argument('-i', '--input-pdf', action='store', default='fahrgastrechte.pdf',
+        help="Filename of the input pdf. (default: fahrgastrechte.pdf)")
+    parser.add_argument('--pdftk', action='store', default='pdftk',
+        help="Name/Path of the pdftk binary (default: pdftk)")
+    parser.add_argument('--output-fdf', action='store', default='data.fdf',
+        help="Filename of the fdf file generated to fill the pdf-form (default: data.fdf)")
+    parser.add_argument('-o', '--output-pdf', action='store', default=None,
+        help="Filename to store the filled pdf (default: fahrgastrechte_{CURRENT UNIT TIMESTAMP}.pdf)")
+    parser.add_argument('--output-json', action='store', default='field.json',
+        help="Filename to store the filled fields as a json file (default: fields.json)")
+    parser.add_argument('-d', '--field-defaults', action='store', default='defaults.json',
+        help="Filename to load the default value from (files from --output-json can be used) (default: default.json)")
+    parser.add_argument('-a', '--auftragsnummer', action='store', default=None,
+        help="Six character booking number")
+    parser.add_argument('-n', '--nachname', action='store', default=None,
+        help="Surname for the Booking")
 
     args = parser.parse_args()
 
@@ -43,14 +44,14 @@ def main(*args):
     else:
         defaults = {}
 
-
-
     if args.auftragsnummer and args.nachname:
         defaults.update(download_buchung(**vars(args)))
 
+    return npyscreen.wrapper_basic(functools.partial(run_menu, defaults, args))
+
+def run_menu(defaults, args, *arg, **kwargs):
     field_fields = []
     fields, fieldnames = get_form_fields(**vars(args))
-
     F = npyscreen.FormMultiPage()
     for n in fieldnames:
         title = ""
@@ -173,4 +174,4 @@ def get_value(w):
         return w.value
 
 if __name__ == '__main__':
-    print(npyscreen.wrapper_basic(main))
+    print(main())
