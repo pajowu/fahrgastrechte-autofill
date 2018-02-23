@@ -7,13 +7,13 @@ Ein kleines Programm um das Fahrgastrechte-Formular der DB einfacher auszufülle
 Benötigt werden `npyscreen` und `fdfgen`, zB via
 
 ```
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 Danach einfach
 
 ```
-python fahrgastrechte.py
+python3 fahrgastrechte.py
 ```
 
 Dort das Formular ausfüllen (nicht benötigte Felder leer lassen) und dann auf der letzten Seite "Generate Form" betätigen.
