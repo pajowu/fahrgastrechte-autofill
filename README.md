@@ -20,6 +20,15 @@ Dort das Formular ausfüllen (nicht benötigte Felder leer lassen) und dann auf 
 
 Danach wird eine Datei `fahrgastrechte_[AKTUELLES DATUM].pdf` erstellt.
 
+### Nutzung mit Docker
+
+Um die Anwendung in einem eigenen Container laufen zu lassen, in dem alle Abhängigkeiten automatisch installiert sind, folgende Kommandos verwenden:
+
+```
+docker build -t fahrgastrechte-app .
+docker run -it --rm -v $(pwd):/usr/src/app -w /usr/src/app fahrgastrechte-app
+```
+
 ## Features
 
 ### Stammdaten speichern
