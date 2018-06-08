@@ -1,0 +1,7 @@
+fahrgastrechte_*.pdf
+defaults.json
+field.json
+__pycache__/
+*.pyc
+data.fdf
+fields.json

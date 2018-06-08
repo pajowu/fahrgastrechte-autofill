@@ -4,11 +4,13 @@ Ein kleines Programm um das Fahrgastrechte-Formular der DB einfacher auszufülle
 
 ## Nutzung
 
-Benötigt werden `npyscreen` und `fdfgen`, zB via
+Benötigt werden `pdftk` sowie die Python-Module `npyscreen` und `fdfgen`, diese können zB via
 
 ```
 pip3 install -r requirements.txt
 ```
+
+installiert werden. `pdftk` sollte am besten aus den Paketquellen der jewieligen Distro installiert werden.
 
 Danach einfach
 
@@ -44,3 +46,6 @@ Dafür muss die Buchungsnummer und der Nachname mit den Kommandozeilenparametern
 ```
 python3 fahrgastrechte.py --auftragsnummer ABC123 --nachname Mustermensch
 ```
+
+# Copyright
+Die `Scrollable`-Klasse in fahrgastrechte_tkinter.py basiert auf <https://stackoverflow.com/a/47985165>.
