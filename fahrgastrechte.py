@@ -17,9 +17,6 @@ import functions
 def main(*args):
     args, defaults = functions.get_args()
 
-    if args.auftragsnummer and args.nachname:
-        defaults.update(functions.download_buchung(**vars(args)))
-
     return npyscreen.wrapper_basic(functools.partial(run_menu, defaults, args))
 
 def run_menu(defaults, args, *arg, **kwargs):

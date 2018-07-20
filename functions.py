@@ -34,6 +34,14 @@ def get_args():
         help="Six character booking number")
     parser.add_argument('-n', '--nachname', action='store', default=None,
         help="Surname for the Booking")
+    parser.add_argument('-p', '--portal', action='store_true',
+        help="Get livedata from the iceportal")
+    parser.add_argument('-u', '--portal-url', action='store', default="iceportal.de",
+        help="Base-Url of the iceportal (default: iceportal.de)")
+    parser.add_argument('-f', '--from-stop', action='store',
+        help="Where to start the journey (data will be automatically filled)")
+    parser.add_argument('-t', '--to-stop', action='store',
+        help="Where to end the journey (data will be automatically filled)")
 
     args = parser.parse_args()
 
@@ -42,6 +50,58 @@ def get_args():
             defaults = json.load(f)
     else:
         defaults = {}
+
+    if args.auftragsnummer and args.nachname:
+        defaults.update(download_buchung(**vars(args)))
+
+    if args.from_stop and args.to_stop:
+        livedata = get_livedata(**vars(args))
+        print(livedata)
+        defaults.update({
+            "S1F13": livedata["trip"]["trainType"],
+            "S1F14": livedata["trip"]["vzn"],
+            "S1F17": livedata["trip"]["trainType"],
+            "S1F18": livedata["trip"]["vzn"],
+
+        })
+
+    if args.from_stop:
+        stop = get_stop(livedata, args.from_stop)
+        start_date = datetime.fromtimestamp(stop["timetable"]["scheduledDepartureTime"]/1000)
+        defaults.update({
+          "S1F1": start_date.strftime("%d"),
+          "S1F2": start_date.strftime("%m"),
+          "S1F3": start_date.strftime("%y"),
+          "S1F4": stop["station"]["name"],
+          "S1F5": start_date.strftime("%H"),
+          "S1F6": start_date.strftime("%M"),
+          "S1F01": start_date.strftime("%d"),
+          "S1F02": start_date.strftime("%m"),
+          "S1F03": start_date.strftime("%y"),
+          "S1F04": stop["station"]["name"],
+          "S1F05": start_date.strftime("%H"),
+          "S1F06": start_date.strftime("%M"),
+          "S1F19": start_date.strftime("%H"),
+          "S1F20": start_date.strftime("%M")
+        })
+
+    if args.to_stop:
+        stop = get_stop(livedata, args.from_stop)
+        scheduled_end_date = datetime.fromtimestamp(stop["timetable"]["scheduledArrivalTime"]/1000)
+        actual_end_date = datetime.fromtimestamp(stop["timetable"]["actualArrivalTime"]/1000)
+        defaults.update({
+            "S1F7": stop["station"]["name"],
+            "S1F8": scheduled_end_date.strftime("%H"),
+            "S1F9": scheduled_end_date.strftime("%M"),
+            "S1F07": stop["station"]["name"],
+            "S1F08": scheduled_end_date.strftime("%H"),
+            "S1F09": scheduled_end_date.strftime("%M"),
+            "S1F10": actual_end_date.strftime("%d"),
+            "S1F11": actual_end_date.strftime("%m"),
+            "S1F12": actual_end_date.strftime("%y"),
+            "S1F15": actual_end_date.strftime("%H"),
+            "S1F16": actual_end_date.strftime("%M"),
+        })
 
     return args, defaults
 
@@ -127,3 +187,15 @@ def download_buchung(auftragsnummer, nachname, *args, **kwargs):
         "S1F11": str(arrival[1].month).zfill(2),
         "S1F12": str(arrival[1].year)[2:].zfill(2),
     }
+
+def get_livedata(portal_url, *args, **kwargs):
+    trip_info = requests.get("http://{}/api1/rs/tripInfo/trip".format(portal_url))
+    return trip_info.json()
+
+def stops(livedata):
+    return livedata["trip"]["stops"]
+
+def get_stop(livedata, stop_name):
+    for stop in stops(livedata):
+        if stop["station"]["name"] == stop_name or stop["station"]["evaNr"] == stop_name:
+            return stop
