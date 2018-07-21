@@ -18,6 +18,17 @@ Dafür muss die Buchungsnummer und der Nachname mit den Kommandozeilenparametern
 python3 fahrgastrechte.py --auftragsnummer ABC123 --nachname Mustermensch
 ```
 
+### Daten aus ICE Portal importieren
+
+Die Daten zum aktuellen Zug können automatisch aus dem ICE Portal importiert werden.
+Dabei ist es sowohl möglich, die planmäßige Abfahrt als auch die tatsächliche und planmäßige Ankunft einzutragen.
+Um die Abfahrtsdaten einzutragen, muss ggf der Startbahnhof mit dem Kommandozeilenparameter `--from-stop` oder `-f` und ggf der Zielbahnhof mit `--to-stop` oder `-t` angegeben werden.
+Statt des vollen Namens des Bahnhofs kann auch die evaNr angegeben werden.
+
+```
+python3 fahrgastrechte.py --from-stop "Berlin Hbf" --to-stop "Leipzig Hbf"
+```
+
 ## Nutzung: CLI
 
 Benötigt werden `pdftk` sowie die Python-Module `npyscreen`, `requests`, `fdfgen` und `beautifulsoup4`, diese können zB via

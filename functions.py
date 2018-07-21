@@ -86,7 +86,7 @@ def get_args():
         })
 
     if args.to_stop:
-        stop = get_stop(livedata, args.from_stop)
+        stop = get_stop(livedata, args.to_stop)
         scheduled_end_date = datetime.fromtimestamp(stop["timetable"]["scheduledArrivalTime"]/1000)
         actual_end_date = datetime.fromtimestamp(stop["timetable"]["actualArrivalTime"]/1000)
         defaults.update({
