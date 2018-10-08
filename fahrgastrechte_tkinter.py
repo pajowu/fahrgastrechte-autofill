@@ -47,7 +47,6 @@ class Scrollable(ttk.Frame):
         direction = 1 if event.num == 5 else -1
         self.canvas.xview_scroll(direction, "units")
 
-
 class Application(ttk.Frame):
     def __init__(self, master, args, defaults):
         super().__init__(master)
@@ -93,16 +92,30 @@ class Application(ttk.Frame):
             row += 1
 
         self.quit = ttk.Button(master, text="Generate Form",
-                              command=root.destroy)
+                              command=root.quit)
         self.quit.grid(row=row, column=1)
 
 
 if __name__ == '__main__':
     args, defaults = functions.get_args()
+
+def main(args, defaults):
+    global root
     root = tk.Tk()
-    frame = Scrollable(frame=root)
-    app = Application(frame, args, defaults)
-    frame.update()
+    root.title("Fahrgastrechteformulat")
+
+    # create a toplevel menu
+    menubar = tk.Menu(root)
+    menubar.add_command(label="Hello!", command=root.quit)
+    menubar.add_command(label="Quit!", command=root.quit)
+
+    # display the menu
+    root.config(menu=menubar)
+    subframe = Scrollable(root)
+    #subframe = ttk.Frame( frame.get_frame() )
+    app = Application(subframe, args, defaults)
+    subframe.update()
     app.mainloop()
     form_values = [(n, v.get()) for n, v in app.form_fields.items()]
-    print(functions.generate_form(form_values, **vars(args)))
+    output_filename = functions.generate_form(form_values, **vars(args))
+    print("PDF written to", output_filename)
