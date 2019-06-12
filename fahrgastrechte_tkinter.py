@@ -96,9 +96,6 @@ class Application(ttk.Frame):
         self.quit.grid(row=row, column=1)
 
 
-if __name__ == '__main__':
-    args, defaults = functions.get_args()
-
 def main(args, defaults):
     global root
     root = tk.Tk()
@@ -119,3 +116,7 @@ def main(args, defaults):
     form_values = [(n, v.get()) for n, v in app.form_fields.items()]
     output_filename = functions.generate_form(form_values, **vars(args))
     print("PDF written to", output_filename)
+
+if __name__ == '__main__':
+    args, defaults = functions.get_args()
+    main(args, defaults)
