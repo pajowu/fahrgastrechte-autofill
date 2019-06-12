@@ -13,6 +13,8 @@ from datetime import datetime
 import re
 import npyscreen
 import functions
+import textwrap
+import shutil
 
 def main(*args):
     args, defaults = functions.get_args()
@@ -23,6 +25,7 @@ def run_menu(defaults, args, *arg, **kwargs):
     field_fields = []
     fields, fieldnames = functions.get_form_fields(**vars(args))
     F = npyscreen.FormMultiPage()
+    terminal_size = shutil.get_terminal_size((80, 20))
     for n in sorted(fieldnames, key=functions.db_fieldname_sort):
         title = ""
         if 'FieldNameAlt' in fields[n]:
@@ -32,6 +35,8 @@ def run_menu(defaults, args, *arg, **kwargs):
             value = defaults[n]
         else:
             value = None
+
+        title = title[:terminal_size.columns-5]
 
         if 'FieldStateOption' in fields[n]:
             if value is not None:
