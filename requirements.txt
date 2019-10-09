@@ -1,4 +1,4 @@
 fdfgen==0.16.1
 npyscreen==4.10.5
 beautifulsoup4>=4.4.0
-requests==2.18.4
+requests>=2.20.0
