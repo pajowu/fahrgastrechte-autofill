@@ -11,14 +11,14 @@ import time
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import re
+import base64
 
 import requests
 from bs4 import BeautifulSoup
 from fdfgen import forge_fdf
 
-def get_args(parser=None):
-	if not parser:
-		parser = argparse.ArgumentParser()
+def parse_args():
+	parser = argparse.ArgumentParser()
 	parser.add_argument('-i', '--input-pdf', action='store', default='fahrgastrechte.pdf',
 		help="Filename of the input pdf. (default: fahrgastrechte.pdf)")
 	parser.add_argument('--pdftk', action='store', default='pdftk',
@@ -44,8 +44,13 @@ def get_args(parser=None):
 	parser.add_argument('-t', '--to-stop', action='store',
 		help="Where to end the journey (data will be automatically filled)")
 
-	args = parser.parse_args()
+	return parser.parse_args()
 
+def get_args(parser=None):
+	if not parser:
+		args = parse_args()
+	else:
+		args = parser.parse_args()
 	if os.path.isfile(args.field_defaults):
 		with open(args.field_defaults, "r") as f:
 			defaults = json.load(f)
@@ -161,11 +166,8 @@ def generate_form(fields, input_pdf, output_pdf, output_fdf, output_json, pdftk,
 def request_xml(request_type, xml):
 	url = 'https://fahrkarten.bahn.de/mobile/dbc/xs.go'
 	tnr = random.getrandbits(64)
-	print(tnr)
 	ts = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-	print(ts)
 	request_body = '<{0} version="2.0"><rqheader tnr="{1}" ts="{2}" v="19100000" d="iPhone10,4" os="iOS_13.1.3" app="NAVIGATOR"/>{3}</{0}>'.format(request_type, tnr, ts, xml)
-	print(request_body)
 	return requests.post(url, data=request_body)
 
 def parse_time_location(root, elem_id):
@@ -197,6 +199,12 @@ def download_buchung(auftragsnummer, nachname, *args, **kwargs):
 		"S1F11": str(arrival[1].month).zfill(2),
 		"S1F12": str(arrival[1].year)[2:].zfill(2),
 	}
+
+def download_passbook(auftragsnummer, nachname, *args, **kwargs):
+	request_body = '<rqorder on="{}"/><authname tln="{}"/>'.format(auftragsnummer, nachname)
+	req = request_xml("rqorderdetails", request_body)
+	root = ET.fromstring(req.text)
+	return base64.b64decode(root.find(".//ht[@name='pass']").text)
 
 def get_livedata(portal_url, *args, **kwargs):
 	trip_info = requests.get("http://{}/api1/rs/tripInfo/trip".format(portal_url))
