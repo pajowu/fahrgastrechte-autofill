@@ -164,7 +164,7 @@ def request_xml(request_type, xml):
 	print(tnr)
 	ts = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 	print(ts)
-	request_body = '<{0} version="2.0"><rqheader tnr="{1}" ts="{2}" v="17080000" os="Android REL 25"/>{3}</{0}>'.format(request_type, tnr, ts, xml)
+	request_body = '<{0} version="2.0"><rqheader tnr="{1}" ts="{2}" v="19100000" d="iPhone10,4" os="iOS_13.1.3" app="NAVIGATOR"/>{3}</{0}>'.format(request_type, tnr, ts, xml)
 	print(request_body)
 	return requests.post(url, data=request_body)
 
