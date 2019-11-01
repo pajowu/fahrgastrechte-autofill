@@ -19,12 +19,7 @@ from fdfgen import forge_fdf
 
 def parse_args():
 	class store_upper(argparse.Action):
-		def __init__(self, option_strings, dest, nargs=None, **kwargs):
-			if nargs is not None:
-				raise ValueError("nargs not allowed")
-			super(store_upper, self).__init__(option_strings, dest, **kwargs)
 		def __call__(self, parser, namespace, values, option_string=None):
-			print('%r %r %r' % (namespace, values, option_string))
 			setattr(namespace, self.dest, values.upper())
 
 	parser = argparse.ArgumentParser()
