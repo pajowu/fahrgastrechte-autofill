@@ -18,6 +18,10 @@ from bs4 import BeautifulSoup
 from fdfgen import forge_fdf
 
 def parse_args():
+	class store_upper(argparse.Action):
+		def __call__(self, parser, namespace, values, option_string=None):
+			setattr(namespace, self.dest, values.upper())
+
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-i', '--input-pdf', action='store', default='fahrgastrechte.pdf',
 		help="Filename of the input pdf. (default: fahrgastrechte.pdf)")
@@ -31,7 +35,7 @@ def parse_args():
 		help="Filename to store the filled fields as a json file (default: fields.json)")
 	parser.add_argument('-d', '--field-defaults', action='store', default='defaults.json',
 		help="Filename to load the default value from (files from --output-json can be used) (default: default.json)")
-	parser.add_argument('-a', '--auftragsnummer', action='store', default=None,
+	parser.add_argument('-a', '--auftragsnummer', action=store_upper, default=None,
 		help="Six character booking number")
 	parser.add_argument('-n', '--nachname', action='store', default=None,
 		help="Surname for the Booking")
